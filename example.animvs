@@ -1,0 +1,35 @@
+package os
+
+import 
+    `io`
+    `syscall`
+
+const
+    blockSize 4096
+
+meth f #p.File readdirnames n #i : names #s.str err #error
+    if (eq f.dirinfo nil)
+        as f.dirinfo (new #dirInfo)
+        as f.dirinfo.buf (make #s.by blockSize)
+    as 'd f.dirinfo
+    as 'size n
+
+    if (lte size 0)
+        as size 100
+        as n -1
+    as names (make #s.str 0 size)
+    while (neq n 0)
+        if (gte d.bufp d.nbuf)
+            as d.bufp 0
+            as 'errno #error
+            as d.nbuf errno (fixCount (ReadDirent f.fd d.buf))
+            if (neq errno nil)
+                return names (NewSyscallError `readdirent` errno)
+            if (lte d.nbuf 0)
+                break
+        as 'nb 'nc names (ParseDirent (slice d.dbuf d.bufp d.nbuf) n names)
+        as add d.bufp nb
+        as sub n nc                ; highlighting should make this clear because can only use common built-in functions
+    if (and (gte n 0) (eq (len names) 0))
+        return names EOF
+    return names nil
